@@ -190,3 +190,23 @@ body {
 .badge-High { background-color: var(--high); }
 .badge-Medium { background-color: var(--medium);  }
 .badge-Low { background-color: var(--low); }
+
+.loading-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  font-size: 1.5rem;
+  color: var(--accent-blue);
+  font-weight: bold;
+}
+
+.error-text {
+  color: var(--critical);
+  text-align: center;
+  margin-top: 3rem;
+}
+
+.recharts-cartesian-axis-tick {
+  font-size: 0.75rem;
+}

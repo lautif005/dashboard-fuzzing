@@ -1,13 +1,47 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   PieChart, Pie, Cell, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer 
 } from 'recharts';
 import './App.css';
-import mockData from './data.json';
 
 function App() {
-  const scans = mockData.scans;
-  const vulnerabilities = mockData.vulnerabilities;
+  const [data, setData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    fetch('http://localhost:5000/api/dashboard')
+      .then(response => {
+        if (!response.ok) {
+          throw new Error('Fallo al conectar con el servidor backend');
+        }
+        return response.json();
+      })
+      .then(dbData => {
+        setData(dbData);
+        setLoading(false);
+      })
+      .catch(err => {
+        console.error(err);
+        setError(err.message);
+        setLoading(false);
+      });
+  }, []);
+
+  if (loading) {
+    return <div className="loading-container">Cargando datos desde PostgreSQL...</div>;
+  }
+
+  if (error) {
+    return <div className="error-text"><h2>Error: {error}</h2></div>;
+  }
+
+  const scans = data.scans;
+  
+  const vulnerabilities = data.vulnerabilities.map(vuln => ({
+    ...vuln,
+    severity: vuln.severity.charAt(0).toUpperCase() + vuln.severity.slice(1)
+  }));
 
   const totalScans = scans.length;
   const totalVulnerabilities = vulnerabilities.length;
@@ -26,7 +60,6 @@ function App() {
     value: severityCounts[key]
   }));
 
-  // Conservamos tus colores aquí
   const CHART_COLORS = {
     Critical: '#ef4444',
     High: '#f97316',
@@ -38,8 +71,9 @@ function App() {
     .sort((a, b) => new Date(a.scan_date) - new Date(b.scan_date))
     .map(scan => {
       const dateObj = new Date(scan.scan_date);
+      const timeString = `${dateObj.getHours().toString().padStart(2, '0')}:${dateObj.getMinutes().toString().padStart(2, '0')}:${dateObj.getSeconds().toString().padStart(2, '0')}`;
       return {
-        fecha: `${dateObj.getDate()}/${dateObj.getMonth() + 1}`,
+        fecha: `${dateObj.getDate()}/${dateObj.getMonth() + 1} - ${timeString}`,
         vulnerabilidades: scan.total_vulnerabilities
       };
     });
@@ -82,7 +116,7 @@ function App() {
       <section className="charts-grid">
         <div className="chart-card">
           <h3>Vulnerabilidades por Severidad</h3>
-          <ResponsiveContainer width="100%" height={300}>
+          <ResponsiveContainer width="100%" height={350}>
             <PieChart>
               <Pie
                 data={severityData}
@@ -105,11 +139,22 @@ function App() {
 
         <div className="chart-card">
           <h3>Evolución Histórica (Vulnerabilidades por Escaneo)</h3>
-          <ResponsiveContainer width="100%" height={300}>
-            <LineChart data={trendData}>
+          <ResponsiveContainer width="100%" height={350}>
+            <LineChart data={trendData} margin={{ top: 20, right: 30, left: 0, bottom: 65 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
-              <XAxis dataKey="fecha" stroke="#94a3b8" />
-              <YAxis stroke="#94a3b8" />
+              <XAxis 
+                dataKey="fecha" 
+                stroke="#94a3b8" 
+                angle={-45} 
+                textAnchor="end" 
+                tickMargin={10}
+                tick={{ fontSize: 12 }}
+              />
+              <YAxis 
+                stroke="#94a3b8" 
+                allowDecimals={false} 
+                tick={{ fontSize: 12 }}
+              />
               <Tooltip />
               <Line 
                 type="monotone" 
@@ -128,56 +173,56 @@ function App() {
         <div className="table-card">
           <h3>Endpoints Más Vulnerables</h3>
           <div className='table-wrapper'>
-                <table className="data-table">
-            <thead>
-              <tr>
-                <th>URL del Endpoint</th>
-                <th>Cantidad de Fallos</th>
-              </tr>
-            </thead>
-            <tbody>
-              {topEndpoints.map((endpoint, index) => (
-                <tr key={index}>
-                  <td>{endpoint.url}</td>
-                  <td>{endpoint.count}</td>
+            <table className="data-table">
+              <thead>
+                <tr>
+                  <th>URL del Endpoint</th>
+                  <th>Cantidad de Fallos</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {topEndpoints.map((endpoint, index) => (
+                  <tr key={index}>
+                    <td>{endpoint.url}</td>
+                    <td>{endpoint.count}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         </div>
 
         <div className="table-card">
           <h3>Detalle de Vulnerabilidades (Integración OWASP / CVSS)</h3>
           <div className='table-wrapper'>
-              <table className="data-table">
-            <thead>
-              <tr>
-                <th>Fuente</th>
-                <th>Tipo</th>
-                <th>Severidad</th>
-                <th>CVSS</th>
-                <th>OWASP Categoría</th>
-                <th>URL Afectada</th>
-              </tr>
-            </thead>
-            <tbody>
-              {vulnerabilities.map((vuln) => (
-                <tr key={vuln.id}>
-                  <td>{vuln.source}</td>
-                  <td>{vuln.type}</td>
-                  <td>
-                    <span className={`badge badge-${vuln.severity}`}>
-                      {vuln.severity}
-                    </span>
-                  </td>
-                  <td>{vuln.cvss_score}</td>
-                  <td>{vuln.owasp_category}</td>
-                  <td>{vuln.url}</td>
+            <table className="data-table">
+              <thead>
+                <tr>
+                  <th>Fuente</th>
+                  <th>Tipo</th>
+                  <th>Severidad</th>
+                  <th>CVSS</th>
+                  <th>OWASP Categoría</th>
+                  <th>URL Afectada</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {vulnerabilities.map((vuln) => (
+                  <tr key={vuln.id}>
+                    <td>{vuln.source}</td>
+                    <td>{vuln.type}</td>
+                    <td>
+                      <span className={`badge badge-${vuln.severity}`}>
+                        {vuln.severity}
+                      </span>
+                    </td>
+                    <td>{vuln.cvss_score || 'N/A'}</td>
+                    <td>{vuln.owasp_category || 'N/A'}</td>
+                    <td>{vuln.url}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         </div>
 
