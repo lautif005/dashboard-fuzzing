@@ -221,15 +221,13 @@ body {
   margin-bottom: 1.875rem;
 }
 
-/* Ajustes para que los filtros ocupen todo el bloque */
 .filter-group {
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
-  flex: 1; /* Esto hace que todos se estiren por igual */
+  flex: 1; 
 }
 
-/* Hacemos que el input de URL sea mucho más ancho que los selects */
 .filter-group.url-group {
   flex: 3; 
 }
@@ -253,7 +251,7 @@ body {
   font-size: 0.875rem;
   transition: border-color 0.2s ease;
   width: 100%;
-  box-sizing: border-box; /* Asegura que el padding no rompa el ancho */
+  box-sizing: border-box; 
 }
 
 .filter-group input:focus,
@@ -262,18 +260,17 @@ body {
   border-color: var(--accent-blue);
 }
 
-/* Estilos para el mensaje de estado vacío */
 .empty-state {
   display: flex;
   justify-content: center;
   align-items: center;
-  height: 15rem; /* Altura similar a la de los gráficos */
+  height: 15rem; 
   color: var(--text-muted);
   font-style: italic;
   font-size: 1.125rem;
   text-align: center;
   padding: 2rem;
-  background-color: rgba(15, 23, 42, 0.4); /* Fondo sutil oscuro */
+  background-color: rgba(15, 23, 42, 0.4); 
   border-radius: 0.5rem;
   border: 1px dashed #334155;
   margin-top: 1rem;
