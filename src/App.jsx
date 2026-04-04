@@ -83,8 +83,6 @@ function App() {
       const dateObj = new Date(scan.scan_date);
       const timeString = `${dateObj.getHours().toString().padStart(2, '0')}:${dateObj.getMinutes().toString().padStart(2, '0')}:${dateObj.getSeconds().toString().padStart(2, '0')}`;
       
-      // Filtramos las vulnerabilidades que pertenecen a este escaneo específico
-      // Asumimos que la vulnerabilidad tiene un campo 'scan_id' que coincide con 'scan.id'
       const vulnsInThisScan = filteredVulnerabilities.filter(v => v.scan_id === scan.id).length;
 
       return {
@@ -102,7 +100,6 @@ function App() {
     .map(url => ({ url, count: endpointCounts[url] }))
     .sort((a, b) => b.count - a.count);
 
-  // Componente reutilizable para mostrar cuando no hay datos
   const renderEmptyState = () => (
     <div className="empty-state">
       <p>No se encontraron vulnerabilidades con los filtros actuales.</p>
