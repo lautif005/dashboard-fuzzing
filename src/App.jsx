@@ -8,6 +8,9 @@ function App() {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [filterUrl, setFilterUrl] = useState('');
+  const [filterSeverity, setFilterSeverity] = useState('');
+  const [filterSource, setFilterSource] = useState('');
 
   useEffect(() => {
     fetch('http://localhost:5000/api/dashboard')
@@ -43,14 +46,21 @@ function App() {
     severity: vuln.severity.charAt(0).toUpperCase() + vuln.severity.slice(1)
   }));
 
+  const filteredVulnerabilities = vulnerabilities.filter(vuln => {
+    const matchUrl = filterUrl === '' || vuln.url.includes(filterUrl);
+    const matchSeverity = filterSeverity === '' || vuln.severity === filterSeverity;
+    const matchSource = filterSource === '' || vuln.source === filterSource;
+    return matchUrl && matchSeverity && matchSource;
+  });
+
   const totalScans = scans.length;
-  const totalVulnerabilities = vulnerabilities.length;
+  const totalVulnerabilities = filteredVulnerabilities.length;
   
-  const criticalVulnerabilities = vulnerabilities.filter(
+  const criticalVulnerabilities = filteredVulnerabilities.filter(
     (vuln) => vuln.severity === 'Critical'
   ).length;
 
-  const severityCounts = vulnerabilities.reduce((acc, vuln) => {
+  const severityCounts = filteredVulnerabilities.reduce((acc, vuln) => {
     acc[vuln.severity] = (acc[vuln.severity] || 0) + 1;
     return acc;
   }, {});
@@ -72,13 +82,18 @@ function App() {
     .map(scan => {
       const dateObj = new Date(scan.scan_date);
       const timeString = `${dateObj.getHours().toString().padStart(2, '0')}:${dateObj.getMinutes().toString().padStart(2, '0')}:${dateObj.getSeconds().toString().padStart(2, '0')}`;
+      
+      // Filtramos las vulnerabilidades que pertenecen a este escaneo específico
+      // Asumimos que la vulnerabilidad tiene un campo 'scan_id' que coincide con 'scan.id'
+      const vulnsInThisScan = filteredVulnerabilities.filter(v => v.scan_id === scan.id).length;
+
       return {
         fecha: `${dateObj.getDate()}/${dateObj.getMonth() + 1} - ${timeString}`,
-        vulnerabilidades: scan.total_vulnerabilities
+        vulnerabilidades: vulnsInThisScan
       };
     });
 
-  const endpointCounts = vulnerabilities.reduce((acc, vuln) => {
+  const endpointCounts = filteredVulnerabilities.reduce((acc, vuln) => {
     acc[vuln.url] = (acc[vuln.url] || 0) + 1;
     return acc;
   }, {});
@@ -87,6 +102,15 @@ function App() {
     .map(url => ({ url, count: endpointCounts[url] }))
     .sort((a, b) => b.count - a.count);
 
+  // Componente reutilizable para mostrar cuando no hay datos
+  const renderEmptyState = () => (
+    <div className="empty-state">
+      <p>No se encontraron vulnerabilidades con los filtros actuales.</p>
+    </div>
+  );
+
+  const hasData = totalVulnerabilities > 0;
+
   return (
     <div className="dashboard-container">
       <header className="dashboard-header">
@@ -94,6 +118,49 @@ function App() {
         <p>Equipo Bot Azul - Monitoreo de Vulnerabilidades</p>
       </header>
 
+      <section className="filters-section">
+        <div className="filter-group url-group">
+          <label htmlFor="filter-url">URL:</label>
+          <input
+            id="filter-url"
+            type="text"
+            placeholder="Filtrar por URL..."
+            value={filterUrl}
+            onChange={(e) => setFilterUrl(e.target.value)}
+          />
+        </div>
+
+        <div className="filter-group">
+          <label htmlFor="filter-severity">Severidad:</label>
+          <select
+            id="filter-severity"
+            value={filterSeverity}
+            onChange={(e) => setFilterSeverity(e.target.value)}
+          >
+            <option value="">Todas</option>
+            <option value="Critical">Critical</option>
+            <option value="High">High</option>
+            <option value="Medium">Medium</option>
+            <option value="Low">Low</option>
+          </select>
+        </div>
+
+        <div className="filter-group">
+          <label htmlFor="filter-source">Herramienta:</label>
+          <select
+            id="filter-source"
+            value={filterSource}
+            onChange={(e) => setFilterSource(e.target.value)}
+          >
+            <option value="">Todas</option>
+            <option value="ZAP">ZAP</option>
+            <option value="Nuclei">Nuclei</option>
+            <option value="SQLMap">SQLMap</option>
+            <option value="ffuf">ffuf</option>
+          </select>
+        </div>
+      </section>
+      
       <section className="kpi-grid">
         <div className="kpi-card">
           <h3>Escaneos Realizados</h3>
@@ -116,116 +183,122 @@ function App() {
       <section className="charts-grid">
         <div className="chart-card">
           <h3>Vulnerabilidades por Severidad</h3>
-          <ResponsiveContainer width="100%" height={350}>
-            <PieChart>
-              <Pie
-                data={severityData}
-                cx="50%"
-                cy="50%"
-                innerRadius={60}
-                outerRadius={100}
-                paddingAngle={5}
-                dataKey="value"
-              >
-                {severityData.map((entry, index) => (
-                  <Cell key={`cell-${index}`} fill={CHART_COLORS[entry.name]} />
-                ))}
-              </Pie>
-              <Tooltip />
-              <Legend />
-            </PieChart>
-          </ResponsiveContainer>
+          {!hasData ? renderEmptyState() : (
+            <ResponsiveContainer width="100%" height={350}>
+              <PieChart>
+                <Pie
+                  data={severityData}
+                  cx="50%"
+                  cy="50%"
+                  innerRadius={60}
+                  outerRadius={100}
+                  paddingAngle={5}
+                  dataKey="value"
+                >
+                  {severityData.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={CHART_COLORS[entry.name]} />
+                  ))}
+                </Pie>
+                <Tooltip />
+                <Legend />
+              </PieChart>
+            </ResponsiveContainer>
+          )}
         </div>
 
         <div className="chart-card">
           <h3>Evolución Histórica (Vulnerabilidades por Escaneo)</h3>
-          <ResponsiveContainer width="100%" height={350}>
-            <LineChart data={trendData} margin={{ top: 20, right: 30, left: 0, bottom: 65 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
-              <XAxis 
-                dataKey="fecha" 
-                stroke="#94a3b8" 
-                angle={-45} 
-                textAnchor="end" 
-                tickMargin={10}
-                tick={{ fontSize: 12 }}
-              />
-              <YAxis 
-                stroke="#94a3b8" 
-                allowDecimals={false} 
-                tick={{ fontSize: 12 }}
-              />
-              <Tooltip />
-              <Line 
-                type="monotone" 
-                dataKey="vulnerabilidades" 
-                stroke="#3b82f6" 
-                strokeWidth={3}
-                dot={{ r: 5, fill: '#3b82f6' }}
-              />
-            </LineChart>
-          </ResponsiveContainer>
+          {!hasData ? renderEmptyState() : (
+            <ResponsiveContainer width="100%" height={350}>
+              <LineChart data={trendData} margin={{ top: 20, right: 30, left: 0, bottom: 65 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
+                <XAxis 
+                  dataKey="fecha" 
+                  stroke="#94a3b8" 
+                  angle={-45} 
+                  textAnchor="end" 
+                  tickMargin={10}
+                  tick={{ fontSize: 12 }}
+                />
+                <YAxis 
+                  stroke="#94a3b8" 
+                  allowDecimals={false} 
+                  tick={{ fontSize: 12 }}
+                />
+                <Tooltip />
+                <Line 
+                  type="monotone" 
+                  dataKey="vulnerabilidades" 
+                  stroke="#3b82f6" 
+                  strokeWidth={3}
+                  dot={{ r: 5, fill: '#3b82f6' }}
+                />
+              </LineChart>
+            </ResponsiveContainer>
+          )}
         </div>
       </section>
 
       <section className="tables-section">
-        
         <div className="table-card">
           <h3>Endpoints Más Vulnerables</h3>
-          <div className='table-wrapper'>
-            <table className="data-table">
-              <thead>
-                <tr>
-                  <th>URL del Endpoint</th>
-                  <th>Cantidad de Fallos</th>
-                </tr>
-              </thead>
-              <tbody>
-                {topEndpoints.map((endpoint, index) => (
-                  <tr key={index}>
-                    <td>{endpoint.url}</td>
-                    <td>{endpoint.count}</td>
+          {!hasData ? renderEmptyState() : (
+            <div className='table-wrapper'>
+              <table className="data-table">
+                <thead>
+                  <tr>
+                    <th>URL del Endpoint</th>
+                    <th>Cantidad de Fallos</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody>
+                  {topEndpoints.map((endpoint, index) => (
+                    <tr key={index}>
+                      <td>{endpoint.url}</td>
+                      <td>{endpoint.count}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
         </div>
 
         <div className="table-card">
-          <h3>Detalle de Vulnerabilidades (Integración OWASP / CVSS)</h3>
-          <div className='table-wrapper'>
-            <table className="data-table">
-              <thead>
-                <tr>
-                  <th>Fuente</th>
-                  <th>Tipo</th>
-                  <th>Severidad</th>
-                  <th>CVSS</th>
-                  <th>OWASP Categoría</th>
-                  <th>URL Afectada</th>
-                </tr>
-              </thead>
-              <tbody>
-                {vulnerabilities.map((vuln) => (
-                  <tr key={vuln.id}>
-                    <td>{vuln.source}</td>
-                    <td>{vuln.type}</td>
-                    <td>
-                      <span className={`badge badge-${vuln.severity}`}>
-                        {vuln.severity}
-                      </span>
-                    </td>
-                    <td>{vuln.cvss_score || 'N/A'}</td>
-                    <td>{vuln.owasp_category || 'N/A'}</td>
-                    <td>{vuln.url}</td>
+          <h3>Detalle de Vulnerabilidades</h3>
+          {!hasData ? renderEmptyState() : (
+            <div className='table-wrapper'>
+              <table className="data-table">
+                <thead>
+                  <tr>
+                    <th>Fuente</th>
+                    <th>Tipo</th>
+                    <th>Severidad</th>
+                    <th>CVSS</th>
+                    <th>OWASP Categoría</th>
+                    <th>URL Afectada</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody>
+                  {filteredVulnerabilities.map((vuln) => (
+                    <tr key={vuln.id}>
+                      <td>{vuln.source}</td>
+                      <td>{vuln.type}</td>
+                      <td>
+                        <span className={`badge badge-${vuln.severity}`}>
+                          {vuln.severity}
+                        </span>
+                      </td>
+                      <td>{vuln.cvss_score || 'N/A'}</td>
+                      <td>{vuln.owasp_category || 'N/A'}</td>
+                      <td>{vuln.url}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
         </div>
-
       </section>
     </div>
   );
