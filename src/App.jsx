@@ -12,6 +12,9 @@ function App() {
   const [filterSeverity, setFilterSeverity] = useState('');
   const [filterSource, setFilterSource] = useState('');
   const [currentView, setCurrentView] = useState('dashboard');
+  
+  // Nuevo estado para la ventana flotante
+  const [selectedVuln, setSelectedVuln] = useState(null);
 
   useEffect(() => {
     setLoading(true);
@@ -298,7 +301,7 @@ function App() {
           <div className="table-card">
             <h3>Detalle Completo de Vulnerabilidades</h3>
             {!hasData ? renderEmptyState() : (
-              <div className='table-wrapper'>
+              <div className='table-wrapper full-height'>
                 <table className="data-table">
                   <thead>
                     <tr>
@@ -312,7 +315,11 @@ function App() {
                   </thead>
                   <tbody>
                     {vulnerabilities.map((vuln) => (
-                      <tr key={vuln.id}>
+                      <tr 
+                        key={vuln.id} 
+                        className="clickable-row"
+                        onClick={() => setSelectedVuln(vuln)}
+                      >
                         <td>{vuln.source}</td>
                         <td>{vuln.type}</td>
                         <td>
@@ -331,6 +338,58 @@ function App() {
             )}
           </div>
         </section>
+      )}
+
+      {/* VENTANA FLOTANTE (MODAL) PARA DETALLES DE VULNERABILIDAD */}
+      {selectedVuln && (
+        <div className="modal-overlay" onClick={() => setSelectedVuln(null)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h2>Detalle de la Vulnerabilidad</h2>
+              <button className="close-btn" onClick={() => setSelectedVuln(null)}>&times;</button>
+            </div>
+            <div className="modal-body">
+              
+              {/* NUEVO ORDEN: Grilla de 2 columnas para metadatos */}
+              <div className="modal-meta-grid">
+                <div className="detail-row">
+                  <strong>Tipo:</strong> <span>{selectedVuln.type}</span>
+                </div>
+                <div className="detail-row">
+                  <strong>Severidad:</strong> 
+                  <span className={`badge badge-${selectedVuln.severity}`}>{selectedVuln.severity}</span>
+                </div>
+                <div className="detail-row">
+                  <strong>Fuente:</strong> <span>{selectedVuln.source}</span>
+                </div>
+                <div className="detail-row">
+                  <strong>CWE ID:</strong> <span>{selectedVuln.cweid || 'Ninguno'}</span>
+                </div>
+              </div>
+
+              {/* URL Destacada a lo ancho completo */}
+              <div className="detail-full url-highlight">
+                <strong>URL Afectada:</strong> 
+                <span className="url-text">{selectedVuln.url}</span>
+              </div>
+
+              <div className="detail-full">
+                <strong>Descripción:</strong>
+                <p>{selectedVuln.description || 'Sin descripción disponible.'}</p>
+              </div>
+              <div className="detail-full">
+                <strong>Solución:</strong>
+                <p>{selectedVuln.solution || 'Sin solución sugerida.'}</p>
+              </div>
+              <div className="detail-full">
+                <strong>Evidencia (Payload/Match):</strong>
+                <div className="evidence-box">
+                  {selectedVuln.evidence || 'No se capturó evidencia exacta.'}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
