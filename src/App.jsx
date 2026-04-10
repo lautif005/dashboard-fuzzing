@@ -3,6 +3,7 @@ import {
   PieChart, Pie, Cell, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer 
 } from 'recharts';
 import './App.css';
+import Sidebar from './components/Sidebar';
 
 function App() {
   const [data, setData] = useState(null);
@@ -113,29 +114,11 @@ function App() {
   const hasData = totalVulnerabilities > 0;
 
   return (
-    <div className="dashboard-container">
-      <header className="dashboard-header">
-        <div className="header-title">
-          <h1>Dashboard de Seguridad Web</h1>
-          <p>Equipo Bot Azul - Monitoreo de Vulnerabilidades</p>
-        </div>
-        <nav className="view-navigation">
-          <button 
-            className={`nav-btn ${currentView === 'dashboard' ? 'active' : ''}`}
-            onClick={() => setCurrentView('dashboard')}
-          >
-            Panel General
-          </button>
-          <button 
-            className={`nav-btn ${currentView === 'details' ? 'active' : ''}`}
-            onClick={() => setCurrentView('details')}
-          >
-            Reporte Detallado
-          </button>
-        </nav>
-      </header>
+    <div className="app-wrapper">
+      <Sidebar currentView={currentView} setCurrentView={setCurrentView} />
 
-      <section className="filters-section">
+      <div className="main-content">
+        <section className="filters-section">
         <div className="filter-group url-group">
           <label htmlFor="filter-scan">Escaneo:</label>
           <select
@@ -268,32 +251,35 @@ function App() {
             </div>
           </section>
 
-          <section className="tables-section">
-            <div className="table-card">
-              <h3>Endpoints Más Vulnerables</h3>
-              {!hasData ? renderEmptyState() : (
-                <div className='table-wrapper'>
-                  <table className="data-table">
-                    <thead>
-                      <tr>
-                        <th>URL del Endpoint</th>
-                        <th>Cantidad de Fallos</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {topEndpoints.map((endpoint, index) => (
-                        <tr key={index}>
-                          <td>{endpoint.url}</td>
-                          <td>{endpoint.count}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-            </div>
-          </section>
         </>
+      )}
+
+      {currentView === 'endpoints' && (
+        <section className="tables-section">
+          <div className="table-card">
+            <h3>Endpoints Más Vulnerables</h3>
+            {!hasData ? renderEmptyState() : (
+              <div className='table-wrapper'>
+                <table className="data-table">
+                  <thead>
+                    <tr>
+                      <th>URL del Endpoint</th>
+                      <th>Cantidad de Fallos</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {topEndpoints.map((endpoint, index) => (
+                      <tr key={index}>
+                        <td>{endpoint.url}</td>
+                        <td>{endpoint.count}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        </section>
       )}
 
       {currentView === 'details' && (
@@ -391,6 +377,7 @@ function App() {
           </div>
         </div>
       )}
+      </div>
     </div>
   );
 }
