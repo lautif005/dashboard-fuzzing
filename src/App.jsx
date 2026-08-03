@@ -34,6 +34,8 @@ function App() {
       })
       .then(dbData => {
         setData(dbData);
+        console.log(dbData);
+        
         setLoading(false);
       })
       .catch(err => {
@@ -58,7 +60,8 @@ function App() {
     severity: vuln.severity.charAt(0).toUpperCase() + vuln.severity.slice(1)
   }));
 
-  const totalScans = scans.length;
+  const scanCountLabel = filterScanId ? 'Escaneo Analizado' : 'Escaneos Realizados';
+  const scanCountValue = filterScanId ? filterScanId : scans.length;
   const totalVulnerabilities = vulnerabilities.length;
   
   const criticalVulnerabilities = vulnerabilities.filter(
@@ -165,7 +168,7 @@ function App() {
             <option value="">Todas</option>
             <option value="OWASP ZAP">OWASP ZAP</option>
             <option value="Nuclei">Nuclei</option>
-            <option value="SQLMap">SQLMap</option>
+            <option value="SQLMap (Worker)">SQLMap</option>
             <option value="ffuf">ffuf</option>
           </select>
         </div>
@@ -175,8 +178,8 @@ function App() {
         <>
           <section className="kpi-grid">
             <div className="kpi-card">
-              <h3>Escaneos Realizados</h3>
-              <p className="kpi-value">{totalScans}</p>
+              <h3>{scanCountLabel}</h3>
+              <p className="kpi-value">{scanCountValue}</p>
             </div>
             
             <div className="kpi-card">
